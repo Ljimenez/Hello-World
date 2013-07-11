@@ -26,7 +26,8 @@ var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
-
+var URL_DEFAULT = "http://fast-savannah-5389.herokuapp.com";
+var rest = require('restler');
 var assertFileExists = function(infile) {
     var instr = infile.toString();
     if(!fs.existsSync(instr)) {
@@ -55,6 +56,26 @@ var checkHtmlFile = function(htmlfile, checksfile) {
     return out;
 };
 
+var checkUrlFile = function(url, checksfile) {	
+    $ = cheerioUrl(url);
+
+    var checks = loadChecks(checksfile).sort();
+    var out = {};
+    for(var ii in checks) {
+        var present = $(checks[ii]).length > 0;
+        out[checks[ii]] = present;
+    }
+    return out;
+};
+var cheerioUrl = function(url){
+  var tmpFile = rest.get(url).on('complete', function(result) {
+  fs.writeFile(__dirname + '/file.html', result, function(err) {
+  if (err) throw err;
+  });
+});
+  return cheerio.load(fs.readFileSync(tmpFile));   
+};
+
 var clone = function(fn) {
     // Workaround for commander.js issue.
     // http://stackoverflow.com/a/6772648
@@ -65,8 +86,9 @@ if(require.main == module) {
     program
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
-        .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
+	.option('-u, --url <url>', 'Path to url',URL_DEFAULT) 
+       .parse(process.argv);
+    var checkJson = checkHtmlFile(program.file,program.checks);//checkUrlFile(program.url, program.checks);
     var outJson = JSON.stringify(checkJson, null, 4);
     console.log(outJson);
 } else {
