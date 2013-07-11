@@ -1,5 +1,5 @@
-
 #!/usr/bin/env node
+
 var fs = require('fs');
 buf = new Buffer(256);
 
